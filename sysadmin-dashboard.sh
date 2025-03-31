@@ -38,18 +38,18 @@ function show_neofetch_info() {
         fi
     fi
     
+<<<<<<< Updated upstream
     neofetch
 
+=======
+    # Run neofetch with no arguments for standard behavior
+    neofetch
+>>>>>>> Stashed changes
 }
-# Add this diagnostic function to your script to understand the issue
-
-
-# Call this function before show_neofetch_info in your script
 
 # Clear screen and display header
 function show_header() {
     clear
-    
     # Show the neofetch system info
     show_neofetch_info
     
@@ -71,9 +71,10 @@ function show_menu() {
     echo -e "${GREEN}4.${NC} Backup System"
     echo -e "${GREEN}5.${NC} System Monitoring"
     echo -e "${GREEN}6.${NC} View System Logs"
+    echo -e "${GREEN}7.${NC} Network Diagnostics"
     echo -e "${RED}0.${NC} Exit"
     echo ""
-    echo -e "${YELLOW}Enter your choice [0-6]:${NC} "
+    echo -e "${YELLOW}Enter your choice [0-7]:${NC} "
 }
 
 # System Updates
@@ -217,6 +218,18 @@ function system_monitoring() {
     fi
 }
 
+# Network Diagnostics
+function network_diagnostics() {
+    # Set environment variable to indicate we're running from the dashboard
+    export SYSADMIN_DASHBOARD=1
+    
+    # Run the network diagnostics script
+    bash "${SCRIPT_DIR}/network_diagnostics.sh"
+    
+    # Unset the environment variable
+    unset SYSADMIN_DASHBOARD
+}
+
 # View System Logs
 function view_logs() {
     while true; do
@@ -292,6 +305,7 @@ function main() {
             4) backup_system ;;
             5) system_monitoring ;;
             6) view_logs ;;
+            7) network_diagnostics ;;
             0) 
                 clear
                 echo -e "${GREEN}${BOLD}Thank you for using the System Administration Dashboard!${NC}"
