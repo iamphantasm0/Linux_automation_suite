@@ -38,13 +38,8 @@ function show_neofetch_info() {
         fi
     fi
     
-<<<<<<< Updated upstream
-    neofetch
-
-=======
     # Run neofetch with no arguments for standard behavior
     neofetch
->>>>>>> Stashed changes
 }
 
 # Clear screen and display header

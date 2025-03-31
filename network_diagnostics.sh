@@ -534,6 +534,20 @@ function show_menu() {
 # Main function
 function main() {
     check_root
+    
+    # Create a unique log file for this run
+    mkdir -p "$LOG_DIR" 2>/dev/null
+    LOG_FILE="$LOG_DIR/network_scan_$(date +%Y%m%d_%H%M%S).log"
+    
+    # Log basic system information at the start
+    echo -e "NETWORK DIAGNOSTIC SCAN" | tee -a "$LOG_FILE"
+    echo -e "==============================================" | tee -a "$LOG_FILE"
+    echo -e "Date: $(date)" | tee -a "$LOG_FILE"
+    echo -e "Hostname: $(hostname)" | tee -a "$LOG_FILE"
+    echo -e "Kernel: $(uname -r)" | tee -a "$LOG_FILE"
+    echo -e "==============================================" | tee -a "$LOG_FILE"
+    echo "" | tee -a "$LOG_FILE"
+    
     print_header
     check_requirements
     
@@ -542,6 +556,10 @@ function main() {
         for arg in "$@"; do
             case $arg in
                 --all)
+                    echo -e "${BOLD}RUNNING COMPLETE NETWORK DIAGNOSTIC SCAN${NC}" | tee -a "$LOG_FILE"
+                    echo -e "${YELLOW}This will perform all tests and save results to: $LOG_FILE${NC}" | tee -a "$LOG_FILE"
+                    echo "" | tee -a "$LOG_FILE"
+                    
                     get_network_interfaces
                     test_connectivity
                     test_dns
@@ -549,6 +567,16 @@ function main() {
                     scan_open_ports
                     security_scan
                     speed_test
+                    
+                    # Summarize results at the end of the log
+                    echo -e "\n${BOLD}SCAN SUMMARY${NC}" | tee -a "$LOG_FILE"
+                    echo -e "==============================================" | tee -a "$LOG_FILE"
+                    echo -e "Scan completed at: $(date)" | tee -a "$LOG_FILE"
+                    echo -e "Log file: $LOG_FILE" | tee -a "$LOG_FILE"
+                    echo -e "==============================================" | tee -a "$LOG_FILE"
+                    
+                    echo -e "\n${GREEN}${BOLD}Complete diagnostic scan finished.${NC}"
+                    echo -e "${BLUE}Log file saved to:${NC} $LOG_FILE"
                     ;;
                 --interfaces)
                     get_network_interfaces
@@ -606,9 +634,25 @@ function main() {
         
         read -r choice
         
+        # Create a new log file for each test run from the menu
+        LOG_FILE="$LOG_DIR/network_scan_$(date +%Y%m%d_%H%M%S).log"
+        
+        # Log basic system information
+        echo -e "NETWORK DIAGNOSTIC SCAN" | tee -a "$LOG_FILE"
+        echo -e "==============================================" | tee -a "$LOG_FILE"
+        echo -e "Date: $(date)" | tee -a "$LOG_FILE"
+        echo -e "Hostname: $(hostname)" | tee -a "$LOG_FILE"
+        echo -e "Kernel: $(uname -r)" | tee -a "$LOG_FILE"
+        echo -e "==============================================" | tee -a "$LOG_FILE"
+        echo "" | tee -a "$LOG_FILE"
+        
         case $choice in
             1)
                 print_header
+                echo -e "${BOLD}RUNNING COMPLETE NETWORK DIAGNOSTIC SCAN${NC}" | tee -a "$LOG_FILE"
+                echo -e "${YELLOW}This will perform all tests and save results to: $LOG_FILE${NC}" | tee -a "$LOG_FILE"
+                echo "" | tee -a "$LOG_FILE"
+                
                 get_network_interfaces
                 test_connectivity
                 test_dns
@@ -616,8 +660,18 @@ function main() {
                 scan_open_ports
                 security_scan
                 speed_test
+                
+                # Summarize results at the end of the log
+                echo -e "\n${BOLD}SCAN SUMMARY${NC}" | tee -a "$LOG_FILE"
+                echo -e "==============================================" | tee -a "$LOG_FILE"
+                echo -e "Scan completed at: $(date)" | tee -a "$LOG_FILE"
+                echo -e "All tests completed successfully." | tee -a "$LOG_FILE"
+                echo -e "Log file: $LOG_FILE" | tee -a "$LOG_FILE"
+                echo -e "==============================================" | tee -a "$LOG_FILE"
+                
                 echo -e "\n${GREEN}${BOLD}All tests completed!${NC}"
-                echo -e "${YELLOW}Press Enter to return to the main menu...${NC}"
+                echo -e "${BLUE}Comprehensive log file saved to:${NC} $LOG_FILE"
+                echo -e "\n${YELLOW}Press Enter to return to the main menu...${NC}"
                 read
                 ;;
             2)
@@ -665,7 +719,7 @@ function main() {
             0)
                 clear
                 echo -e "${GREEN}${BOLD}Network diagnostics completed!${NC}"
-                echo -e "${BLUE}Log file:${NC} $LOG_FILE"
+                echo -e "${BLUE}Log files are saved in:${NC} $LOG_DIR"
                 exit 0
                 ;;
             *)
