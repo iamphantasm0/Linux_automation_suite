@@ -21,49 +21,38 @@ function check_root() {
     fi
 }
 
+# Function to display neofetch ASCII art with system info
+function show_neofetch_info() {
+    # Check if neofetch is installed
+    if ! command -v neofetch &> /dev/null; then
+        echo -e "${YELLOW}Neofetch is not installed. Installing...${NC}"
+        if command -v apt &> /dev/null; then
+            apt install -y neofetch
+        elif command -v dnf &> /dev/null; then
+            dnf install -y neofetch
+        elif command -v pacman &> /dev/null; then
+            pacman -S --noconfirm neofetch
+        else
+            echo -e "${RED}Unable to install neofetch automatically. Please install it manually.${NC}"
+            return 1
+        fi
+    fi
+    
+    # Run neofetch with specific settings
+    TERM=xterm-256color neofetch --color_blocks off
+}
+
 # Clear screen and display header
 function show_header() {
     clear
+    # Show the neofetch system info
+    show_neofetch_info
+    
+    echo ""
     echo -e "${BOLD}╔════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BOLD}║              LINUX SYSTEM ADMIN DASHBOARD              ║${NC}"
     echo -e "${BOLD}╚════════════════════════════════════════════════════════╝${NC}"
-    echo -e "${BLUE}System:${NC} $(uname -srmo)"
-    echo -e "${BLUE}Hostname:${NC} $(hostname)"
-    echo -e "${BLUE}Uptime:${NC} $(uptime -p)"
-    echo -e "${BLUE}Current User:${NC} $(whoami)"
-    echo -e "${BLUE}Date/Time:${NC} $(date)"
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-}
-
-# Show quick system stats
-function show_quick_stats() {
-    echo -e "${BOLD}SYSTEM QUICK STATS${NC}"
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
-    # CPU Usage
-    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4}')
-    echo -e "${BOLD}CPU Usage:${NC} ${cpu_usage}%"
-    
-    # Memory Usage
-    mem_info=$(free -m | grep Mem)
-    mem_total=$(echo $mem_info | awk '{print $2}')
-    mem_used=$(echo $mem_info | awk '{print $3}')
-    mem_usage=$((mem_used * 100 / mem_total))
-    echo -e "${BOLD}Memory Usage:${NC} ${mem_usage}% (${mem_used}MB / ${mem_total}MB)"
-    
-    # Disk Usage
-    disk_usage=$(df -h / | awk 'NR==2 {print $5}')
-    echo -e "${BOLD}Disk Usage:${NC} ${disk_usage}"
-    
-    # Load Average
-    load_avg=$(uptime | awk -F'load average:' '{print $2}' | xargs)
-    echo -e "${BOLD}Load Average:${NC} ${load_avg}"
-    
-    # Active Users
-    user_count=$(who | wc -l)
-    echo -e "${BOLD}Active Users:${NC} ${user_count}"
-    
     echo ""
 }
 
@@ -180,16 +169,31 @@ function user_management() {
 
 # Security Audit
 function security_audit() {
+    # Set environment variable to indicate we're running from the dashboard
+    export SYSADMIN_DASHBOARD=1
+    
     bash "${SCRIPT_DIR}/security_audit.sh"
+    
     echo -e "\n${YELLOW}Press Enter to return to the main menu...${NC}"
     read
+    
+    # Unset the environment variable
+    unset SYSADMIN_DASHBOARD
 }
 
 # Backup System
 function backup_system() {
+    # Set environment variable to indicate we're running from the dashboard
+    export SYSADMIN_DASHBOARD=1
+    
+    # Run the backup script
     bash "${SCRIPT_DIR}/backup.sh"
+    
     echo -e "\n${YELLOW}Press Enter to return to the main menu...${NC}"
     read
+    
+    # Unset the environment variable
+    unset SYSADMIN_DASHBOARD
 }
 
 # System Monitoring
@@ -272,7 +276,6 @@ function main() {
     
     while true; do
         show_header
-        show_quick_stats
         show_menu
         
         read -r choice
@@ -285,7 +288,8 @@ function main() {
             5) system_monitoring ;;
             6) view_logs ;;
             0) 
-                echo -e "${GREEN}Thank you for using the System Administration Dashboard!${NC}"
+                clear
+                echo -e "${GREEN}${BOLD}Thank you for using the System Administration Dashboard!${NC}"
                 exit 0
                 ;;
             *)

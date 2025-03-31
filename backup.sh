@@ -59,21 +59,48 @@ function build_exclude_params() {
     echo "$EXCLUDE_PARAMS"
 }
 
-# Show progress bar
+# Show progress bar with cancellation option
 function show_progress() {
     local pid=$1
     local spin='-\|/'
     local i=0
     
-    echo -ne "${YELLOW}Backup in progress...  ${NC}"
+    echo -e "${YELLOW}Backup in progress...  ${NC}"
+    echo -e "${BLUE}Press 'q' at any time to cancel the backup${NC}"
+    
+    # Turn off canonical mode and echo
+    stty -icanon -echo
     
     while kill -0 $pid 2>/dev/null; do
         i=$(( (i+1) % 4 ))
-        echo -ne "\r${YELLOW}Backup in progress...  ${spin:$i:1}${NC}"
-        sleep 0.2
+        echo -ne "\r${YELLOW}Backup in progress...  ${spin:$i:1} ${NC}"
+        
+        # Check for keypress with short timeout
+        if read -t 0.2 -n 1 input; then
+            if [[ $input = "q" ]]; then
+                echo -e "\n\n${RED}Backup cancellation requested.${NC}"
+                kill $pid 2>/dev/null
+                sleep 1
+                # Reset terminal
+                stty icanon echo
+                echo -e "${RED}Backup was cancelled. Cleaning up...${NC}" | tee -a "$LOG_FILE"
+                # Remove incomplete backup file
+                if [ -f "$BACKUP_FILE" ]; then
+                    rm "$BACKUP_FILE"
+                    echo -e "${YELLOW}Removed incomplete backup file.${NC}" | tee -a "$LOG_FILE"
+                fi
+                echo -e "${YELLOW}Press Enter to continue...${NC}"
+                read
+                return 1
+            fi
+        fi
     done
     
+    # Reset terminal
+    stty icanon echo
+    
     echo -e "\r${GREEN}Backup completed!       ${NC}"
+    return 0
 }
 
 # Create the backup
@@ -98,6 +125,13 @@ function create_backup() {
     
     # Show progress while backup is running
     show_progress $backup_pid
+    progress_status=$?
+    
+    # If progress was cancelled by user (status 1), return without further processing
+    if [ $progress_status -eq 1 ]; then
+        echo -e "${YELLOW}Backup operation was cancelled by user.${NC}" | tee -a "$LOG_FILE"
+        return 1
+    fi
     
     # Wait for backup to complete
     wait $backup_pid
@@ -107,9 +141,10 @@ function create_backup() {
         echo -e "${GREEN}${BOLD}✓ Backup completed successfully!${NC}" | tee -a "$LOG_FILE"
         echo -e "${BLUE}Time completed:${NC} $(date)" | tee -a "$LOG_FILE"
         echo -e "${BLUE}Backup file size:${NC} $(du -h $BACKUP_FILE | cut -f1)" | tee -a "$LOG_FILE"
+        return 0
     else
         echo -e "${RED}${BOLD}✗ Error: Backup failed!${NC}" | tee -a "$LOG_FILE"
-        exit 1
+        return 1
     fi
 }
 
@@ -256,12 +291,32 @@ check_root
 print_header
 create_backup_dir
 
+BACKUP_SUCCESS=0
+
 if [ "$ROTATE_ONLY" = false ]; then
     create_backup
-    check_integrity
+    BACKUP_SUCCESS=$?
+    
+    # Only check integrity if backup was successful
+    if [ $BACKUP_SUCCESS -eq 0 ]; then
+        check_integrity
+    fi
 fi
 
-rotate_backups
+# Only rotate backups if not in sysadmin dashboard mode or if backup was successful
+if [ "$ROTATE_ONLY" = true ] || [ $BACKUP_SUCCESS -eq 0 ]; then
+    rotate_backups
+fi
 
-echo -e "\n${GREEN}${BOLD}Backup process completed!${NC}" | tee -a "$LOG_FILE"
+if [ $BACKUP_SUCCESS -eq 0 ]; then
+    echo -e "\n${GREEN}${BOLD}Backup process completed successfully!${NC}" | tee -a "$LOG_FILE"
+else
+    echo -e "\n${YELLOW}${BOLD}Backup process did not complete successfully.${NC}" | tee -a "$LOG_FILE"
+fi
+
 echo -e "${BLUE}Log file:${NC} $LOG_FILE\n" | tee -a "$LOG_FILE"
+
+# Don't exit if running from sysadmin dashboard
+if [ -z "$SYSADMIN_DASHBOARD" ]; then
+    exit $BACKUP_SUCCESS
+fi
