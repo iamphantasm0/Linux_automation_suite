@@ -21,6 +21,30 @@ function check_root() {
     fi
 }
 
+function diagnose_neofetch() {
+    echo "==== Neofetch Diagnostic Information ===="
+    echo "User: $(whoami)"
+    echo "Home directory: $HOME"
+    echo "XDG_CONFIG_HOME: ${XDG_CONFIG_HOME:-$HOME/.config}"
+    echo "Neofetch config paths:"
+    echo "  - ${XDG_CONFIG_HOME:-$HOME/.config}/neofetch/config.conf"
+    echo "  - /etc/neofetch/config.conf"
+    
+    echo "Content of /etc/os-release:"
+    cat /etc/os-release
+    
+    echo "Desktop environment: $XDG_CURRENT_DESKTOP"
+    echo "Display manager: $DESKTOP_SESSION"
+    
+    echo "Running neofetch -v to check version:"
+    neofetch -v
+    
+    echo "Testing neofetch with explicit path:"
+    $(which neofetch)
+    
+    echo "=== End of Diagnostic Information ==="
+}
+
 # Function to display neofetch ASCII art with system info
 function show_neofetch_info() {
     # Check if neofetch is installed
@@ -38,7 +62,14 @@ function show_neofetch_info() {
         fi
     fi
     
-    neofetch
+     # If running as root and SUDO_USER exists, run as original user
+    if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+        # Use bash -c to create a clean environment for the command
+        sudo -u "$SUDO_USER" bash -c 'XDG_CONFIG_HOME="$HOME/.config" neofetch'
+    else
+        # Otherwise run directly
+        XDG_CONFIG_HOME="$HOME/.config" neofetch
+    fi
 
 }
 # Add this diagnostic function to your script to understand the issue
