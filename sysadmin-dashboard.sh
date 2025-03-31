@@ -38,13 +38,47 @@ function show_neofetch_info() {
         fi
     fi
     
-    # Run neofetch with specific settings
-    TERM=xterm-256color neofetch --color_blocks off
+    # If running as root and SUDO_USER exists, run as original user
+    if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+        # Use bash -c to create a clean environment for the command
+        sudo -u "$SUDO_USER" bash -c 'XDG_CONFIG_HOME="$HOME/.config" neofetch'
+    else
+        # Otherwise run directly
+        XDG_CONFIG_HOME="$HOME/.config" neofetch
+    fi
+
 }
+# Add this diagnostic function to your script to understand the issue
+function diagnose_neofetch() {
+    echo "==== Neofetch Diagnostic Information ===="
+    echo "User: $(whoami)"
+    echo "Home directory: $HOME"
+    echo "XDG_CONFIG_HOME: ${XDG_CONFIG_HOME:-$HOME/.config}"
+    echo "Neofetch config paths:"
+    echo "  - ${XDG_CONFIG_HOME:-$HOME/.config}/neofetch/config.conf"
+    echo "  - /etc/neofetch/config.conf"
+    
+    echo "Content of /etc/os-release:"
+    cat /etc/os-release
+    
+    echo "Desktop environment: $XDG_CURRENT_DESKTOP"
+    echo "Display manager: $DESKTOP_SESSION"
+    
+    echo "Running neofetch -v to check version:"
+    neofetch -v
+    
+    echo "Testing neofetch with explicit path:"
+    $(which neofetch)
+    
+    echo "=== End of Diagnostic Information ==="
+}
+
+# Call this function before show_neofetch_info in your script
 
 # Clear screen and display header
 function show_header() {
     clear
+    
     # Show the neofetch system info
     show_neofetch_info
     
